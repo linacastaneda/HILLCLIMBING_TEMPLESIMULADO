@@ -1,4 +1,4 @@
-# Ascenso de Colinas y Temple Simulado en el 8-Puzzle (3x3)
+# Ascenso de Colinas y Temple Simulado en el Puzzle (3x3)
 
 Estudio comparativo de búsqueda local informada: **Hill Climbing (HC)** frente a **Simulated Annealing / Temple Simulado (TS)** en el puzzle 3x3, con heurística Manhattan, funciones en español y análisis de complejidad teórica y empírica.
 
@@ -6,7 +6,7 @@ Archivo principal: `puzzle_colinas_temple.py` · Requiere `Python 3.10+`, `numpy
 
 ## Resumen
 
-Se implementan dos algoritmos de búsqueda local para el 8-puzzle y se comparan en 30 partidas por nivel de dificultad (8, 12, 20 y 30 movimientos de mezcla desde la meta). HC obtiene mayor tasa de éxito, menor tiempo, menos nodos evaluados y caminos más cortos en todos los niveles. TS es entre 300 y 700 veces más costoso y genera caminos entre 5 y 8 veces más largos, aunque en casos puntuales escapa de mínimos locales donde HC se bloquea. Para este dominio y esta parametrización, HC es la opción preferente; TS solo se justifica con reinicios o como mecanismo de escape.
+Se implementan dos algoritmos de búsqueda local para el puzzle y se comparan en 30 partidas por nivel de dificultad (8, 12, 20 y 30 movimientos de mezcla desde la meta). HC obtiene mayor tasa de éxito, menor tiempo, menos nodos evaluados y caminos más cortos en todos los niveles. TS es entre 300 y 700 veces más costoso y genera caminos entre 5 y 8 veces más largos, aunque en casos puntuales escapa de mínimos locales donde HC se bloquea. Para este dominio y esta parametrización, HC es la opción preferente; TS solo se justifica con reinicios o como mecanismo de escape.
 
 ## 1. Planteamiento del problema
 
@@ -16,7 +16,7 @@ Estado: tupla de 9 posiciones `(1,2,3,4,5,6,7,8,0)` donde `0` es el hueco. Meta:
 
 Se utiliza `h(n) = distancia_manhattan(n)` como heurística principal por cuatro razones formales y una práctica:
 
-1. **Admisible y consistente.** Manhattan nunca sobrestima el número real de movimientos restantes, porque cada ficha necesita al menos su distancia en grilla y cada movimiento mueve una sola ficha una casilla. Al ser admisible y consistente, es la referencia estándar en 8-puzzle (Russell y Norvig) y define un paisaje con gradiente útil para búsqueda local.
+1. **Admisible y consistente.** Manhattan nunca sobrestima el número real de movimientos restantes, porque cada ficha necesita al menos su distancia en grilla y cada movimiento mueve una sola ficha una casilla. Al ser admisible y consistente, es la referencia estándar en puzzle (Russell y Norvig) y define un paisaje con gradiente útil para búsqueda local.
 
 2. **Domina a fichas descolocadas.** Sea `h1` = fichas fuera de lugar y `h2` = Manhattan. Para todo estado, `h2 >= h1`, y `h2` es estrictamente más informativa. Ejemplo: `(1,2,0,4,5,3,7,8,6)` tiene `h1 = 2` y `h2 = 2`; `(2,5,3,4,0,6,7,1,8)` tiene `h1 = 5` y `h2 = 6`. En el segundo caso Manhattan distingue mejor la lejanía real. Con `h1` el paisaje está lleno de mesetas (muchos vecinos con igual valor); con `h2` hay menos empates y HC recibe mejor dirección.
 
