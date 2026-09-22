@@ -34,7 +34,7 @@ Genera:
 - `graficas_hc_vs_sa.png`
 - `graficas_HC_TS_dificultad.png`
 
-## 3. Datitos — comparación HC vs TS (30 partidas por nivel, Manhattan)
+## 3. Datos — comparación HC vs TS (30 partidas por nivel, Manhattan)
 
 | Mezcla | HC éxito | HC tiempo | HC nodos | HC pasos* | TS éxito | TS tiempo | TS nodos | TS pasos* |
 |---|---|---|---|---|---|---|---|---|
