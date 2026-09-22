@@ -185,109 +185,65 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
     }
 
 
-def experimento(niveles=(8, 12, 20, 30), trials=30, semilla=123):
-    """Comparación HC vs TS según movimientos de mezcla.
-
-    Complejidad empírica: éxito, tiempo, evaluaciones y pasos vs mezcla.
-    HC = O(k*b), TS = O(k) con un vecino por iteración.
-    """
-    print("=" * 70)
-    print("EXPERIMENTO HC vs TS (3x3) - función costo f(s)")
-    print(f"Niveles={niveles}, trials={trials}")
-    print("=" * 70)
+def experimento(trials=30, max_iter=5000, semilla=123):
+    """Compara HC y TS sobre los mismos estados iniciales solucionables."""
     random.seed(semilla)
-    estudio = {}
-    print(f"{'Mezcla':<8}{'HC%':<8}{'HC ms':<10}{'HC eval':<10}{'HC pas':<8}| "
-          f"{'TS%':<8}{'TS ms':<10}{'TS eval':<10}{'TS pas':<8}")
-    print("-" * 90)
-    for sc in niveles:
-        pruebas = [generar_estado_aleatorio(sc) for _ in range(trials)]
-        hc_m = {"exito": [], "tiempo": [], "evaluaciones": [], "pasos": []}
-        ts_m = {"exito": [], "tiempo": [], "evaluaciones": [], "pasos": []}
-        for s in pruebas:
-            r = ascenso_colinas(s)
-            hc_m["exito"].append(1 if r["exito"] else 0)
-            hc_m["tiempo"].append(r["tiempo"])
-            hc_m["evaluaciones"].append(r["evaluaciones"])
-            hc_m["pasos"].append(r["pasos"])
-            r2 = temple_simulado(s)
-            ts_m["exito"].append(1 if r2["exito"] else 0)
-            ts_m["tiempo"].append(r2["tiempo"])
-            ts_m["evaluaciones"].append(r2["evaluaciones"])
-            ts_m["pasos"].append(r2["pasos"])
-        estudio[sc] = {"hc": hc_m, "ts": ts_m}
-        hc_p = [x for x in hc_m["pasos"] if x is not None]
-        ts_p = [x for x in ts_m["pasos"] if x is not None]
-        print(f"{sc:<8}{np.mean(hc_m['exito'])*100:<8.1f}"
-              f"{np.mean(hc_m['tiempo'])*1000:<10.3f}{np.mean(hc_m['evaluaciones']):<10.1f}"
-              f"{(np.mean(hc_p) if hc_p else 0):<8.1f}| "
-              f"{np.mean(ts_m['exito'])*100:<8.1f}"
-              f"{np.mean(ts_m['tiempo'])*1000:<10.3f}{np.mean(ts_m['evaluaciones']):<10.1f}"
-              f"{(np.mean(ts_p) if ts_p else 0):<8.1f}")
-    print("-" * 90)
-    print("Evaluaciones de costo: HC = O(k*b); TS = O(k).")
-    print("b~2.67 (2 esquina, 3 borde, 4 centro). Espacio 9!/2=181440.")
-    return estudio
+    estados = []
+    vistos = set()
+    while len(estados) < trials:
+        estado = generar_estado_aleatorio(20)
+        if estado != META and estado not in vistos:
+            vistos.add(estado)
+            estados.append(estado)
+
+    resultados = {}
+    for nombre, algoritmo in (("hc", ascenso_colinas), ("ts", temple_simulado)):
+        ejecuciones = [algoritmo(estado, max_iter=max_iter) for estado in estados]
+        resultados[nombre] = {
+            "exito": np.mean([r["exito"] for r in ejecuciones]) * 100,
+            "evaluaciones": np.mean([r["evaluaciones"] for r in ejecuciones]),
+            "tiempo": np.mean([r["tiempo"] for r in ejecuciones]) * 1000,
+        }
+
+    print("Comparación experimental: Ascenso de Colinas vs Temple Simulado")
+    print(f"Puzle 3x3 | {trials} estados iniciales distintos y compartidos | máximo {max_iter} iteraciones")
+    print(f"{'Algoritmo':<22}{'Éxito (%)':>12}{'Evaluaciones promedio':>24}{'Tiempo promedio (ms)':>23}")
+    for nombre, etiqueta in (("hc", "Ascenso de Colinas"), ("ts", "Temple Simulado")):
+        r = resultados[nombre]
+        print(f"{etiqueta:<22}{r['exito']:>12.1f}{r['evaluaciones']:>24.1f}{r['tiempo']:>23.3f}")
+    return resultados
 
 
 def graficar_comparacion(estudio):
-    """4 gráficas costo/complejidad vs movimientos de mezcla. Guarda PNG."""
-    niveles = sorted(estudio.keys())
-    hc_ok = [np.mean(estudio[n]["hc"]["exito"]) * 100 for n in niveles]
-    ts_ok = [np.mean(estudio[n]["ts"]["exito"]) * 100 for n in niveles]
-    hc_t = [np.mean(estudio[n]["hc"]["tiempo"]) * 1000 for n in niveles]
-    ts_t = [np.mean(estudio[n]["ts"]["tiempo"]) * 1000 for n in niveles]
-    hc_n = [np.mean(estudio[n]["hc"]["evaluaciones"]) for n in niveles]
-    ts_n = [np.mean(estudio[n]["ts"]["evaluaciones"]) for n in niveles]
-    hc_p = []
-    ts_p = []
-    for n in niveles:
-        a = [x for x in estudio[n]["hc"]["pasos"] if x is not None]
-        b = [x for x in estudio[n]["ts"]["pasos"] if x is not None]
-        hc_p.append(np.mean(a) if a else 0)
-        ts_p.append(np.mean(b) if b else 0)
+    """Tres gráficas de barras con las métricas agregadas de HC y TS."""
+    etiquetas = ['Ascenso de\nColinas', 'Temple\nSimulado']
+    colores = ['tab:blue', 'tab:orange']
+    metricas = (
+        ('exito', 'Tasa de éxito de los algoritmos', 'Éxito (%)', '{:.1f}%'),
+        ('evaluaciones', 'Soluciones evaluadas promedio', 'Soluciones evaluadas', '{:.1f}'),
+        ('tiempo', 'Tiempo promedio de ejecución', 'Tiempo (ms)', '{:.3f}'),
+    )
 
-    fig, axs = plt.subplots(2, 2, figsize=(13, 9))
+    fig, axs = plt.subplots(1, 3, figsize=(16, 5))
     fig.suptitle('Comparación experimental: Ascenso de Colinas vs Temple Simulado', fontsize=15)
+    for ax, (clave, titulo, eje_y, formato) in zip(axs, metricas):
+        valores = [estudio['hc'][clave], estudio['ts'][clave]]
+        barras = ax.bar(etiquetas, valores, color=colores, width=0.55)
+        ax.set_title(titulo)
+        ax.set_ylabel(eje_y)
+        limite = 100 if clave == 'exito' else max(valores) * 1.15
+        ax.set_ylim(0, limite)
+        ax.grid(axis='y', alpha=0.3)
+        ax.set_axisbelow(True)
+        for barra, valor in zip(barras, valores):
+            ax.text(barra.get_x() + barra.get_width() / 2,
+                    max(valor, limite * 0.02) + limite * 0.01,
+                    formato.format(valor), ha='center', va='bottom')
 
-    axs[0, 0].plot(niveles, hc_ok, 'o-', label='Ascenso colinas', linewidth=2)
-    axs[0, 0].plot(niveles, ts_ok, 's-', label='Temple simulado', linewidth=2)
-    axs[0, 0].set_title('Tasa de éxito (%) vs movimientos de mezcla')
-    axs[0, 0].set_xlabel('Movimientos de mezcla')
-    axs[0, 0].set_ylabel('% éxito')
-    axs[0, 0].legend()
-    axs[0, 0].grid(True, alpha=0.3)
-
-    axs[0, 1].plot(niveles, hc_t, 'o-', label='Ascenso de Colinas', linewidth=2)
-    axs[0, 1].plot(niveles, ts_t, 's-', label='Temple Simulado', linewidth=2)
-    axs[0, 1].set_title('Tiempo medio (ms, log) vs movimientos de mezcla')
-    axs[0, 1].set_xlabel('Movimientos de mezcla')
-    axs[0, 1].set_ylabel('ms (log)')
-    axs[0, 1].set_yscale('log')
-    axs[0, 1].legend()
-    axs[0, 1].grid(True, which='both', alpha=0.3)
-
-    axs[1, 0].plot(niveles, hc_n, 'o-', label='Ascenso de Colinas', linewidth=2)
-    axs[1, 0].plot(niveles, ts_n, 's-', label='Temple Simulado', linewidth=2)
-    axs[1, 0].set_title('Soluciones evaluadas (log) vs movimientos de mezcla')
-    axs[1, 0].set_xlabel('Movimientos de mezcla')
-    axs[1, 0].set_ylabel('Soluciones evaluadas (log)')
-    axs[1, 0].set_yscale('log')
-    axs[1, 0].legend()
-    axs[1, 0].grid(True, which='both', alpha=0.3)
-
-    axs[1, 1].plot(niveles, hc_p, 'o-', label='HC pasos', linewidth=2)
-    axs[1, 1].plot(niveles, ts_p, 's-', label='TS pasos', linewidth=2)
-    axs[1, 1].set_title('Pasos (solo éxitos) vs movimientos de mezcla')
-    axs[1, 1].set_xlabel('Movimientos de mezcla')
-    axs[1, 1].set_ylabel('pasos')
-    axs[1, 1].legend()
-    axs[1, 1].grid(True, alpha=0.3)
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    ruta_grafica = Path(__file__).resolve().parent / 'img' / 'graficas_HC_TS_dificultad.png'
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    ruta_grafica = Path(__file__).resolve().parent / 'img' / 'comparacion_HC_TS.png'
     ruta_grafica.parent.mkdir(exist_ok=True)
-    plt.savefig(ruta_grafica, dpi=300)
+    fig.savefig(ruta_grafica, dpi=300)
     print(f"Gráfica guardada como '{ruta_grafica}'")
     plt.show()
 
@@ -296,7 +252,7 @@ def main():
     """Punto de entrada: experimento + gráfica."""
     estudio = experimento()
     graficar_comparacion(estudio)
-    print("Listo: ver img/graficas_HC_TS_dificultad.png")
+    print("Listo: ver img/comparacion_HC_TS.png")
 
 
 if __name__ == "__main__":
