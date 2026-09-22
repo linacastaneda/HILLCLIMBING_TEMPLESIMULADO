@@ -70,6 +70,7 @@ def ascenso_colinas(estado_inicial, max_iter=5000):
             "exito": True,
             "tiempo": time.perf_counter() - inicio,
             "evaluaciones": 0,
+            "estados_almacenados": len(camino),
             "pasos": 0,
             "camino": camino,
             "historial_costo": historial_costo,
@@ -102,6 +103,7 @@ def ascenso_colinas(estado_inicial, max_iter=5000):
         "exito": exito,
         "tiempo": time.perf_counter() - inicio,
         "evaluaciones": soluciones_evaluadas,
+        "estados_almacenados": len(camino),
         "pasos": (len(camino) - 1) if exito else None,
         "camino": camino,
         "historial_costo": historial_costo,
@@ -135,6 +137,7 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
             "exito": True,
             "tiempo": time.perf_counter() - inicio,
             "evaluaciones": 0,
+            "estados_almacenados": len(trayectoria),
             "pasos": 0,
             "camino": trayectoria,
             "historial_costo": historial_costo,
@@ -176,6 +179,7 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
         "exito": exito,
         "tiempo": time.perf_counter() - inicio,
         "evaluaciones": soluciones_evaluadas,
+        "estados_almacenados": len(trayectoria),
         "pasos": (len(trayectoria) - 1) if exito else None,
         "camino": trayectoria,
         "historial_costo": historial_costo,
@@ -203,30 +207,35 @@ def experimento(trials=30, max_iter=5000, semilla=123):
             "exito": np.mean([r["exito"] for r in ejecuciones]) * 100,
             "evaluaciones": np.mean([r["evaluaciones"] for r in ejecuciones]),
             "tiempo": np.mean([r["tiempo"] for r in ejecuciones]) * 1000,
+            "estados_almacenados": np.mean([r["estados_almacenados"] for r in ejecuciones]),
+            "evaluaciones_por_ejecucion": [r["evaluaciones"] for r in ejecuciones],
         }
 
     print("Comparación experimental: Ascenso de Colinas vs Temple Simulado")
     print(f"Puzle 3x3 | {trials} estados iniciales distintos y compartidos | máximo {max_iter} iteraciones")
-    print(f"{'Algoritmo':<22}{'Éxito (%)':>12}{'Evaluaciones promedio':>24}{'Tiempo promedio (ms)':>23}")
+    print(f"{'Algoritmo':<22}{'Éxito (%)':>12}{'Evaluaciones promedio':>24}"
+          f"{'Tiempo promedio (ms)':>23}{'Estados almacenados':>22}")
     for nombre, etiqueta in (("hc", "Ascenso de Colinas"), ("ts", "Temple Simulado")):
         r = resultados[nombre]
-        print(f"{etiqueta:<22}{r['exito']:>12.1f}{r['evaluaciones']:>24.1f}{r['tiempo']:>23.3f}")
+        print(f"{etiqueta:<22}{r['exito']:>12.1f}{r['evaluaciones']:>24.1f}"
+              f"{r['tiempo']:>23.3f}{r['estados_almacenados']:>22.1f}")
     return resultados
 
 
 def graficar_comparacion(estudio):
-    """Tres gráficas de barras con las métricas agregadas de HC y TS."""
+    """Cuatro gráficas de barras con las métricas agregadas de HC y TS."""
     etiquetas = ['Ascenso de\nColinas', 'Temple\nSimulado']
     colores = ['tab:blue', 'tab:orange']
     metricas = (
         ('exito', 'Tasa de éxito de los algoritmos', 'Éxito (%)', '{:.1f}%'),
         ('evaluaciones', 'Soluciones evaluadas promedio', 'Soluciones evaluadas', '{:.1f}'),
         ('tiempo', 'Tiempo promedio de ejecución', 'Tiempo (ms)', '{:.3f}'),
+        ('estados_almacenados', 'Estados almacenados promedio', 'Estados almacenados', '{:.1f}'),
     )
 
-    fig, axs = plt.subplots(1, 3, figsize=(16, 5))
+    fig, axs = plt.subplots(2, 2, figsize=(13, 9))
     fig.suptitle('Comparación experimental: Ascenso de Colinas vs Temple Simulado', fontsize=15)
-    for ax, (clave, titulo, eje_y, formato) in zip(axs, metricas):
+    for ax, (clave, titulo, eje_y, formato) in zip(axs.flat, metricas):
         valores = [estudio['hc'][clave], estudio['ts'][clave]]
         barras = ax.bar(etiquetas, valores, color=colores, width=0.55)
         ax.set_title(titulo)
@@ -240,7 +249,7 @@ def graficar_comparacion(estudio):
                     max(valor, limite * 0.02) + limite * 0.01,
                     formato.format(valor), ha='center', va='bottom')
 
-    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
     ruta_grafica = Path(__file__).resolve().parent / 'img' / 'comparacion_HC_TS.png'
     ruta_grafica.parent.mkdir(exist_ok=True)
     fig.savefig(ruta_grafica, dpi=300)
@@ -248,11 +257,37 @@ def graficar_comparacion(estudio):
     plt.show()
 
 
+def graficar_evaluaciones_por_ejecucion(estudio):
+    """Grafica las evaluaciones de HC y TS en cada ejecución pareada."""
+    hc = estudio['hc']['evaluaciones_por_ejecucion']
+    ts = estudio['ts']['evaluaciones_por_ejecucion']
+    ejecuciones = range(1, len(hc) + 1)
+
+    fig, ax = plt.subplots(figsize=(14, 5))
+    ax.plot(ejecuciones, hc, 'o-', label='Ascenso de Colinas', markersize=4)
+    ax.plot(ejecuciones, ts, 's-', label='Temple Simulado', markersize=4)
+    ax.set_title('Soluciones evaluadas por ejecución (escala logarítmica)')
+    ax.set_xlabel('Ejecución')
+    ax.set_ylabel('Soluciones evaluadas')
+    ax.set_yscale('log')
+    ax.set_xticks(list(ejecuciones))
+    ax.grid(True, which='both', alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+
+    ruta_grafica = Path(__file__).resolve().parent / 'img' / 'evaluaciones_por_ejecucion_HC_TS.png'
+    ruta_grafica.parent.mkdir(exist_ok=True)
+    fig.savefig(ruta_grafica, dpi=300)
+    print(f"Gráfica guardada como '{ruta_grafica}'")
+    plt.show()
+
+
 def main():
-    """Punto de entrada: experimento + gráfica."""
+    """Punto de entrada: experimento y dos figuras comparativas."""
     estudio = experimento()
     graficar_comparacion(estudio)
-    print("Listo: ver img/comparacion_HC_TS.png")
+    graficar_evaluaciones_por_ejecucion(estudio)
+    print("Listo: ver img/comparacion_HC_TS.png e img/evaluaciones_por_ejecucion_HC_TS.png")
 
 
 if __name__ == "__main__":
