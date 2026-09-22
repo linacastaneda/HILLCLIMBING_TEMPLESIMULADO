@@ -5,13 +5,13 @@ Comparación de búsqueda local para el puzle 3 × 3. Ambos algoritmos usan la m
 ## Algoritmos
 
 - **Ascenso de Colinas (HC):** evalúa todos los vecinos, elige el de menor costo y se detiene si ninguno mejora el estado actual. Puede quedar atrapado en una meseta o mínimo local.
-- **Temple Simulado (TS):** evalúa un vecino aleatorio por iteración. Acepta mejoras y empates (`delta_E <= 0`); acepta un empeoramiento con probabilidad `exp(-delta_E / T)`.
+- **Temple Simulado (TS):** evalúa un vecino aleatorio por iteración. Acepta mejoras y empates (`delta_E <= 0`); acepta un empeoramiento con probabilidad `exp(-delta_E / T)`. Después de cada iteración actualiza `T *= alpha` y se detiene cuando `T <= T_min`.
 
 ## Método experimental
 
 1. Con semilla `123`, se generan **30 estados iniciales solucionables, distintos y sin incluir la meta** mediante movimientos aleatorios desde la meta. Los movimientos solo sirven para crear la muestra; no son una variable de comparación.
 2. HC se ejecuta una vez sobre cada estado y TS se ejecuta una vez sobre **esos mismos 30 estados**.
-3. Ambos reciben el mismo presupuesto máximo de `5000` iteraciones. HC suele detenerse antes cuando no encuentra mejora.
+3. Ambos reciben el mismo presupuesto máximo de `5000` iteraciones. HC puede detenerse antes cuando no encuentra mejora; TS también se detiene al llegar a `T_min`.
 4. Se calculan cuatro métricas: **tasa de éxito** (porcentaje que llega a la meta), **soluciones evaluadas promedio** (estados candidatos cuyo costo se calcula), **tiempo promedio** en milisegundos y **estados almacenados promedio** (`len(camino)` en HC y `len(trayectoria)` en TS).
 
 Para reproducir el experimento:
@@ -25,8 +25,8 @@ python puzzle_colinas_temple.py
 
 | Algoritmo | Éxito | Evaluaciones promedio | Tiempo promedio | Estados almacenados promedio |
 |---|---:|---:|---:|---:|
-| Ascenso de Colinas | 30.0 % | 8.1 | 0.015 ms | 3.2 |
-| Temple Simulado | 30.0 % | 3515.9 | 10.519 ms | 908.1 |
+| Ascenso de Colinas | 30.0 % | 8.1 | 0.034 ms | 3.2 |
+| Temple Simulado | 23.3 % | 590.1 | 2.933 ms | 248.3 |
 
 Los porcentajes, las evaluaciones y los estados almacenados corresponden a la muestra reproducible con la semilla indicada. Los tiempos son de una ejecución de ejemplo y cambian según el equipo y la carga del sistema.
 
@@ -36,7 +36,7 @@ La siguiente figura muestra las evaluaciones de **cada una de las 30 ejecuciones
 
 ![Soluciones evaluadas por ejecución para HC y TS](img/evaluaciones_por_ejecucion_HC_TS.png)
 
-En esta muestra, ambos algoritmos alcanzaron la meta en 9 de los 30 estados. HC necesitó menos evaluaciones, tiempo y estados almacenados en promedio. La gráfica por ejecución muestra que TS evaluó más soluciones en todas las corridas de esta muestra. Una sola muestra de 30 estados no permite afirmar que las tasas de éxito sean iguales en general.
+En esta muestra, HC alcanzó la meta en 9 de los 30 estados y TS en 7. HC necesitó menos evaluaciones, tiempo y estados almacenados en promedio. La gráfica por ejecución muestra que TS evaluó más soluciones en las 30 corridas, aunque se detuvo al enfriarse hasta `T_min`. Una sola muestra de 30 estados no basta para generalizar la diferencia de éxito.
 
 ## Complejidad computacional
 
