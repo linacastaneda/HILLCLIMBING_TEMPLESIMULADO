@@ -118,7 +118,7 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
 
     Delta E = f(s') - f(s). Si mejora o empata se acepta.
     Si empeora se acepta con P = exp(-DeltaE / T).
-    Enfría con T = T_inicial * alpha^k.
+    Enfría con T = alpha * T y se detiene al llegar a T_min.
     """
     if semilla is not None:
         random.seed(semilla)
@@ -146,9 +146,9 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
             "mejor_costo": 0,
         }
 
-    for k in range(max_iter):
-        T = max(T_min, T_inicial * (alpha ** k))
-        if actual == META:
+    T = T_inicial
+    for _ in range(max_iter):
+        if actual == META or T <= T_min:
             break
         vecinos = obtener_vecinos(actual)
         soluciones_evaluadas += 1
@@ -159,7 +159,7 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
         if delta_E <= 0:
             acepta = True
         else:
-            prob = math.exp(-delta_E / T) if T > 0 else 0.0
+            prob = math.exp(-delta_E / T)
             if random.random() < prob:
                 acepta = True
         if acepta:
@@ -173,6 +173,7 @@ def temple_simulado(estado_inicial, T_inicial=2.0, alpha=0.99, T_min=0.001,
         historial_T.append(T)
         if mejor_costo == 0:
             break
+        T *= alpha
 
     exito = (mejor_costo == 0)
     return {
